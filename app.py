@@ -34,13 +34,28 @@ HEADERS = {
 
 
 def fetch_followers(username: str):
-    """Obtiene el número de seguidores de una cuenta pública de Instagram."""
-    url = f"https://i.instagram.com/api/v1/users/web_profile_info/?username={username}"
-    r = requests.get(url, headers=HEADERS, timeout=10)
+    """Obtiene seguidores desde la página pública de Instagram."""
+    url = f"https://www.instagram.com/{username}/"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+    }
+    r = requests.get(url, headers=headers, timeout=10)
     r.raise_for_status()
-    data = r.json()
-    count = data["data"]["user"]["edge_followed_by"]["count"]
-    return int(count)
+
+    # Instagram embebe los datos en un JSON dentro del HTML
+    html = r.text
+    marker = '"edge_followed_by":{"count":'
+    idx = html.find(marker)
+    if idx == -1:
+        raise ValueError("No se encontró el conteo en el HTML")
+    start = idx + len(marker)
+    end = html.index("}", start)
+    count = int(html[start:end])
+    return count
 
 
 @app.route("/ping")
